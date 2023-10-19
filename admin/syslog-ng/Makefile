@@ -2,12 +2,12 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=syslog-ng
 PKG_VERSION:=4.4.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_MAINTAINER:=Josef Schlehofer <pepe.schlehofer@gmail.com>
 PKG_LICENSE:=LGPL-2.1-or-later GPL-2.0-or-later
 PKG_LICENSE_FILES:=COPYING LGPL.txt GPL.txt
-PKG_CPE_ID:=cpe:/a:balabit:syslog-ng
+#PKG_CPE_ID:=cpe:/a:balabit:syslog-ng
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://github.com/syslog-ng/syslog-ng/releases/download/$(PKG_NAME)-$(PKG_VERSION)/
@@ -28,12 +28,26 @@ ifeq ($(CONFIG_HOST_OS_MACOS),y)
     include ../../utils/fakeuname/fakeuname.mk
 endif
 
+define Package/logread
+  SECTION:=admin
+  CATEGORY:=Administration
+  TITLE:=logread
+  PROVIDES:=logread
+endef
+
+define Package/logread/description
+  logread is script to simplify log reading by providing direct command,
+  rather than use external tools like cat.
+  This is usually provided by busybox or ubox, but in case of both missing,
+  this will provide required logread script that is used in other packages.
+endef
+
 define Package/syslog-ng
   SECTION:=admin
   CATEGORY:=Administration
   TITLE:=A powerful syslog daemon
   URL:=https://www.syslog-ng.com/products/open-source-log-management/
-  DEPENDS:=+libpcre2 +glib2 +libopenssl +libpthread +librt +zlib +libdbi +libjson-c +libcurl +libuuid +SYSLOGNG_LOGROTATE:logrotate
+  DEPENDS:=+libpcre2 +glib2 +libopenssl +libpthread +librt +zlib +libdbi +libjson-c +libcurl +libuuid +logread +SYSLOGNG_LOGROTATE:logrotate
 endef
 
 define Package/syslog-ng/description
@@ -122,9 +136,6 @@ define Package/syslog-ng/install
 	$(INSTALL_DATA) ./files/syslog-ng.conf $(1)/etc
 	touch $(1)/etc/syslog-ng.d/.keep
 
-	$(INSTALL_DIR) $(1)/sbin
-	$(INSTALL_BIN) ./files/logread $(1)/sbin
-
 	$(INSTALL_DIR) $(1)/usr/share/syslog-ng/include/
 	$(CP) -r ./files/scl $(1)/usr/share/syslog-ng/include/
 
@@ -135,6 +146,11 @@ ifneq ($(strip $(CONFIG_SYSLOGNG_LOGROTATE)),)
 		-e 's#@ROTATE@#$(LOGROTATE_ROTATE)#g' \
 		./files/syslog-ng.logrotate > $(1)/etc/logrotate.d/syslog-ng.conf
 endif
+endef
+
+define Package/logread/install
+	$(INSTALL_DIR) $(1)/sbin
+	$(INSTALL_BIN) ./files/logread $(1)/sbin
 endef
 
 define Package/syslog-ng/postinst
@@ -156,3 +172,4 @@ define Package/syslog-ng/prerm
 endef
 
 $(eval $(call BuildPackage,syslog-ng))
+$(eval $(call BuildPackage,logread))
